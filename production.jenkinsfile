@@ -1,10 +1,49 @@
 pipeline {
     agent any
+    environment {
+        IMAGE_NAME = "mathijsdewilde/calculatorapp"
+        IP = "44.201.168.208"
+        SSH = "ssh -o StrictHostKeyChecking=no ubuntu@$IP"
+    }
     stages {
         stage('dtap production') {
             steps {
                 echo "good luck..."
             }
+        }
+        stage('start prod'){
+            steps {
+                sshagent (credentials: ['ssh-agent']) {
+                    script {
+                        try {
+                            sh '$SSH docker container rm -f calculatorapp'
+                        } catch (error) {
+                            echo "Container did not exist so was not removed."
+                        } 
+                    }
+                    sh '$SSH docker pull $IMAGE_NAME'
+                }
+            }
+        }
+        stage('deploy prod'){
+            steps {
+                sshagent (credentials: ['ssh-agent']) {
+                    sh '$SSH docker run -d --name calculatorapp -p 80:3000 $IMAGE_NAME'
+                }
+            }
+        }
+        stage("test prod"){
+            steps{
+                // Wait a few seconds for the container to spin up
+                sh 'sleep 5'
+                sh 'curl -I --connect-timeout 30 $IP'
+            }
+        }
+    }
+    post {
+        cleanup {
+            sh 'docker system prune -f'
+            cleanWs()
         }
     }
 }

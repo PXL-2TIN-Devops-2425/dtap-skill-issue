@@ -3,4 +3,4 @@ opmaak met Markdown.
 
 a)
 
-b)
+sudo usermod -aG docker jenkins
